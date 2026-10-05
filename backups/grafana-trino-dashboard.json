@@ -1,0 +1,210 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "Trino Web UI",
+      "url": "https://cle01-trino-f80f2a.cle01.spoc.cloudera-labs.com/ui/",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "Not ready" } }, "type": "value" },
+            { "options": { "1": { "color": "green", "text": "Ready" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 10,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "expr": "trino_engine_ready{trino_instance=\"$trino_instance\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "Engine CR ready",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "DOWN" } }, "type": "value" },
+            { "options": { "1": { "color": "green", "text": "UP" } }, "type": "value" }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "id": 11,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "expr": "trino_node_up{trino_instance=\"$trino_instance\", cluster=\"$cluster\", trino_role=\"coordinator\"}", "refId": "A" }],
+      "title": "Coordinator /v1/status",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "id": 12,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "expr": "sum(trino_node_up{trino_instance=\"$trino_instance\", cluster=\"$cluster\", trino_role=\"worker\"})", "refId": "A" }],
+      "title": "Workers up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "green", "mode": "fixed" } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "id": 13,
+      "targets": [{ "expr": "sum(trino_query_timeline_total{trino_instance=\"$trino_instance\", cluster=\"$cluster\", query_state=\"FINISHED\"})", "refId": "A" }],
+      "title": "Queries FINISHED (log window)",
+      "description": "From coordinator QueryMonitor logs in exporter window (default 15m). Aligns with Trino UI query history.",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "red", "mode": "fixed" } }, "overrides": [] },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "id": 14,
+      "targets": [{ "expr": "sum(trino_query_timeline_total{trino_instance=\"$trino_instance\", cluster=\"$cluster\", query_state=\"FAILED\"})", "refId": "A" }],
+      "title": "Queries FAILED (log window)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "id": 15,
+      "options": {
+        "content": "**Trino UI (jobs / queries):** [cle01-trino UI](https://cle01-trino-f80f2a.cle01.spoc.cloudera-labs.com/ui/)\n\nHub metrics poll **`/v1/status`** on coordinator/worker **:8080** (not :35000). Query counts come from **QueryMonitor** logs.",
+        "mode": "markdown"
+      },
+      "title": "UI link",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 4 },
+      "id": 20,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "trino_node_heap_used_bytes{trino_instance=\"$trino_instance\", cluster=\"$cluster\", trino_role=\"coordinator\"}", "legendFormat": "heap used (coord)", "refId": "A" },
+        { "expr": "trino_node_heap_available_bytes{trino_instance=\"$trino_instance\", cluster=\"$cluster\", trino_role=\"coordinator\"}", "legendFormat": "heap avail (coord)", "refId": "B" }
+      ],
+      "title": "Coordinator JVM heap",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 4 },
+      "id": 21,
+      "targets": [{ "expr": "trino_node_free_memory_bytes{trino_instance=\"$trino_instance\", cluster=\"$cluster\"}", "legendFormat": "{{trino_role}} {{trino_pod}}", "refId": "A" }],
+      "title": "Free query memory pool",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 }, "overrides": [] },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 4 },
+      "id": 22,
+      "targets": [
+        { "expr": "trino_node_process_cpu_load{trino_instance=\"$trino_instance\", cluster=\"$cluster\"}", "legendFormat": "process {{trino_role}}", "refId": "A" },
+        { "expr": "trino_node_system_cpu_load{trino_instance=\"$trino_instance\", cluster=\"$cluster\"}", "legendFormat": "system {{trino_role}}", "refId": "B" }
+      ],
+      "title": "CPU load (process vs system)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 11 },
+      "id": 23,
+      "targets": [{ "expr": "trino_node_uptime_seconds{trino_instance=\"$trino_instance\", cluster=\"$cluster\"}", "legendFormat": "{{trino_role}} {{trino_pod}}", "refId": "A" }],
+      "title": "Node uptime",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 11 },
+      "id": 24,
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } },
+      "targets": [{ "expr": "sum by (query_state) (trino_query_timeline_total{trino_instance=\"$trino_instance\", cluster=\"$cluster\"})", "legendFormat": "{{query_state}}", "refId": "A" }],
+      "title": "Query outcomes (QueryMonitor, log window)",
+      "type": "bargauge"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 17 },
+      "id": 30,
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{
+        "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+        "metrics": [{ "id": "1", "settings": { "limit": "500" }, "type": "logs" }],
+        "query": "(product:trino OR log:*cle01-trino* OR log:*trino-coordinator* OR log:*trino-worker*) AND (log:*QueryMonitor* OR log:*TIMELINE* OR log:*io.trino* OR log:*INFO*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "Query job lines (matches Trino UI query list)",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 28 },
+      "id": 31,
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{
+        "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+        "metrics": [{ "id": "1", "settings": { "limit": "200" }, "type": "logs" }],
+        "query": "(product:trino OR log:*cle01-trino*) AND (log:*FAILED* OR log:*QueryMonitor*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "Failed queries",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["trino", "cle", "uob-poc"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "definition": "label_values(trino_node_up, trino_instance)",
+        "name": "trino_instance",
+        "label": "Trino instance",
+        "query": { "query": "label_values(trino_node_up, trino_instance)", "refId": "A" },
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "definition": "label_values(trino_node_up{trino_instance=\"$trino_instance\"}, cluster)",
+        "name": "cluster",
+        "label": "Cluster",
+        "query": { "query": "label_values(trino_node_up{trino_instance=\"$trino_instance\"}, cluster)", "refId": "A" },
+        "refresh": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Trino (CLE)",
+  "uid": "trino-cle-obs",
+  "version": 2
+}

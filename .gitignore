@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------------------
+# CREDENTIALS - never commit. This repo is PUBLIC.
+# ---------------------------------------------------------------------------
+# SSH private keys (bastion.pem, mail-server.pem)
+*.pem
+*.key
+*.p12
+*.ppk
+id_rsa*
+id_ed25519*
+
+# kubeconfigs - each embeds client-certificate-data + client-key-data,
+# i.e. full cluster credentials. All 7 are excluded.
+*_kubeconfig.yaml
+*kubeconfig*.yaml
+
+# env / secret files
+.env
+.env.*
+*credentials*
+*secret*
+
+# ---------------------------------------------------------------------------
+# Internal topology - excluded from this PUBLIC repo.
+# These are the only files carrying the cluster API IP map (10.0.x.x:6443),
+# the internal *.spoc.cloudera-labs.com hostnames, the bastion public IP
+# (35.168.84.113) and the cluster/namespace topology. Setup scripts are
+# pushed unchanged; these docs are not.
+# ---------------------------------------------------------------------------
+README.md
+PROJECT.md
+docs/
+start_tunnel.sh
+
+# ---------------------------------------------------------------------------
+# Generated + machine-local
+# ---------------------------------------------------------------------------
+graphify-out/
+.claude/settings.local.json
+
+# ---------------------------------------------------------------------------
+# OS / editor cruft
+# ---------------------------------------------------------------------------
+.DS_Store
+*.log

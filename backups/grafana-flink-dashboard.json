@@ -1,0 +1,95 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [{ "expr": "sum(flink_sessionjob_running{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"})", "refId": "A" }],
+      "title": "Session jobs RUNNING",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "targets": [{ "expr": "sum(flink_sessionjob_failed{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"})", "refId": "A" }],
+      "title": "Session jobs FAILED",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "targets": [{ "expr": "sum(flink_deployment_failed{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"})", "refId": "A" }],
+      "title": "Deployments FAILED",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "targets": [{ "expr": "flink_jobmanager_pods_up{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "JobManager pods",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "targets": [{ "expr": "sum by (job_state) (flink_sessionjobs_total{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"})", "legendFormat": "{{job_state}}", "refId": "A" }],
+      "title": "FlinkSessionJob states",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "targets": [{ "expr": "sum by (job_state) (flink_deployments_total{flink_workspace=\"$flink_workspace\", cluster=\"$cluster\"})", "legendFormat": "{{job_state}}", "refId": "A" }],
+      "title": "FlinkDeployment job states",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 12 },
+      "id": 7,
+      "options": { "showTime": true, "sortOrder": "Descending" },
+      "targets": [{
+        "metrics": [{ "id": "1", "settings": { "limit": "400" }, "type": "logs" }],
+        "query": "(product:flink OR log:*uob.product=flink* OR log:*flink* OR log:*ssb* OR log:*org.apache.flink*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "Flink / SSB logs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["flink", "csa", "ssb", "uob-poc"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "flink_workspace",
+        "query": { "query": "label_values(flink_deployment_info, flink_workspace)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "cluster",
+        "query": { "query": "label_values(flink_deployment_info{flink_workspace=\"$flink_workspace\"}, cluster)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Flink / SSB (CSA)",
+  "uid": "flink-csa-obs",
+  "version": 1
+}

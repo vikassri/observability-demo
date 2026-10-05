@@ -1,0 +1,95 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [{ "expr": "spark_operator_up{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "Spark operator up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "targets": [{ "expr": "spark_driver_pods_up{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "Driver pods (live)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "targets": [{ "expr": "sum(spark_applications_total{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\", state=~\"Failed|ApplicationFailed|SubmissionFailed\"})", "refId": "A" }],
+      "title": "Apps in failed state (CR)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "targets": [{ "expr": "spark_operator_error_lines{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "Operator ERROR lines (15m)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "targets": [{ "expr": "sum by (state) (spark_applications_total{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\"})", "legendFormat": "{{state}}", "refId": "A" }],
+      "title": "SparkApplication states (CR)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "targets": [{ "expr": "spark_application_failed{spark_workspace=\"$spark_workspace\", cluster=\"$cluster\"}", "legendFormat": "{{spark_application}}", "refId": "A" }],
+      "title": "Failed applications",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 12 },
+      "id": 7,
+      "options": { "showTime": true, "sortOrder": "Descending" },
+      "targets": [{
+        "metrics": [{ "id": "1", "settings": { "limit": "400" }, "type": "logs" }],
+        "query": "(product:spark OR log:*uob.product=spark* OR log:*spark-operator* OR log:*SparkApplication*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "Spark / operator logs (Kibana field: log)",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["spark", "cde", "uob-poc"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "spark_workspace",
+        "query": { "query": "label_values(spark_operator_up, spark_workspace)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "cluster",
+        "query": { "query": "label_values(spark_operator_up{spark_workspace=\"$spark_workspace\"}, cluster)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Spark (CDE)",
+  "uid": "spark-cde-obs",
+  "version": 1
+}

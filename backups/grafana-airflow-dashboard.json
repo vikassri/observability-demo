@@ -1,0 +1,127 @@
+{
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "title": "Airflow (api-server)",
+      "url": "__AIRFLOW_UI_URL__",
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": true
+    }
+  ],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "airflow_api_reachable{airflow_release=\"$airflow_release\", cluster=\"$cluster\"}", "refId": "A" }],
+      "title": "API reachable",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 5, "x": 4, "y": 0 },
+      "id": 2,
+      "targets": [{ "expr": "airflow_component_healthy{airflow_release=\"$airflow_release\", cluster=\"$cluster\"}", "legendFormat": "{{component}}", "refId": "A" }],
+      "title": "Component health (monitor/health)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 5, "x": 9, "y": 0 },
+      "id": 3,
+      "targets": [{ "expr": "sum(airflow_dagrun_finished_total{airflow_release=\"$airflow_release\", cluster=\"$cluster\", state=\"failed\"})", "refId": "A" }],
+      "title": "DAG runs failed (log window)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 5, "x": 14, "y": 0 },
+      "id": 4,
+      "targets": [{ "expr": "sum(airflow_taskinstance_finished_total{airflow_release=\"$airflow_release\", cluster=\"$cluster\", state=\"failed\"})", "refId": "A" }],
+      "title": "Tasks failed (log window)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 0 },
+      "id": 5,
+      "options": { "content": "Open [Airflow UI](__AIRFLOW_UI_URL__) (CWO api-server). Hub scrapes **`/api/v2/monitor/health`** on the same host and scheduler **DagRun/TaskInstance Finished** logs — aligned with DAG/task outcomes in the UI.", "mode": "markdown" },
+      "title": "UI",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 6,
+      "targets": [{ "expr": "sum by (state) (airflow_dagrun_finished_total{airflow_release=\"$airflow_release\", cluster=\"$cluster\"})", "legendFormat": "{{state}}", "refId": "A" }],
+      "title": "DAG run outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 7,
+      "targets": [{ "expr": "sum by (state) (airflow_taskinstance_finished_total{airflow_release=\"$airflow_release\", cluster=\"$cluster\"})", "legendFormat": "{{state}}", "refId": "A" }],
+      "title": "Task outcomes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 12 },
+      "id": 8,
+      "options": { "showTime": true, "sortOrder": "Descending" },
+      "targets": [{
+        "metrics": [{ "id": "1", "settings": { "limit": "400" }, "type": "logs" }],
+        "query": "(product:airflow OR log:*cwo01-cwo* OR log:*airflow*) AND (log:*DagRun* OR log:*TaskInstance*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "DAG run job lines (scheduler)",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "__ES_UID__" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 22 },
+      "id": 9,
+      "options": { "showTime": true, "sortOrder": "Descending" },
+      "targets": [{
+        "metrics": [{ "id": "1", "settings": { "limit": "300" }, "type": "logs" }],
+        "query": "(product:airflow OR log:*cwo01-cwo*) AND log:*TaskInstance* AND (log:*failed* OR log:*state=failed*)",
+        "refId": "A",
+        "timeField": "@timestamp",
+        "index": "uob-logs-*"
+      }],
+      "title": "Failed tasks (matches UI red tasks)",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["airflow", "cwo", "uob-poc"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "airflow_release",
+        "query": { "query": "label_values(airflow_api_reachable, airflow_release)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      },
+      {
+        "datasource": { "type": "prometheus", "uid": "__PROM_UID__" },
+        "name": "cluster",
+        "query": { "query": "label_values(airflow_api_reachable{airflow_release=\"$airflow_release\"}, cluster)", "refId": "A" },
+        "type": "query",
+        "refresh": 1
+      }
+    ]
+  },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Airflow (CWO)",
+  "uid": "airflow-cwo-obs",
+  "version": 1
+}

@@ -1,0 +1,32 @@
+{
+    "python-envs.defaultEnvManager": "ms-python.python:venv",
+    "workbench.colorTheme": "Visual Studio Dark",
+    "editor.tokenColorCustomizations": {
+
+        "[*Light*]": {
+            "textMateRules": [
+                {
+                    "scope": "ref.matchtext",
+                    "settings": {
+                        "foreground": "#000"
+                    }
+                }
+            ]
+        },
+        "[*Dark*]": {
+            "textMateRules": [
+                {
+                    "scope": "ref.matchtext",
+                    "settings": {
+                        "foreground": "#fff"
+                    }
+                }
+            ]
+        }
+    },
+    "editor.fontWeight": "normal",
+    "editor.inlineSuggest.fontFamily": "default",
+    "debug.console.fontFamily": "default",
+    "terminal.integrated.fontFamily": "Monaco",
+    "scm.inputFontSize": 12
+}
