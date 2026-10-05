@@ -19,6 +19,7 @@ NIFI_K8S_NAMESPACE="${NIFI_K8S_NAMESPACE:-dfx-nifi-deployment-ns}"
 NIFI_RULE_UID_BULLETIN="${NIFI_RULE_UID_BULLETIN:-nifi-proc-bulletin}"
 NIFI_RULE_UID_TERMINATED="${NIFI_RULE_UID_TERMINATED:-nifi-proc-thread-terminated}"
 NIFI_RULE_UID_COUNTER="${NIFI_RULE_UID_COUNTER:-nifi-proc-failure-counter}"
+NIFI_RULE_UID_QUEUE_STALLED="${NIFI_RULE_UID_QUEUE_STALLED:-nifi-conn-queue-stalled}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ">>> Configuring Grafana SMTP -> Mailpit (localhost:1025)..."
@@ -43,7 +44,10 @@ REMOTE
 echo ">>> Folder, Mailpit contact point, and alert rules..."
 echo "    Flow: ${NIFI_FLOW_TITLE} (parent_id=${NIFI_PARENT_ID})"
 echo "    Bulletin window=${NIFI_BULLETIN_WINDOW}"
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SCRIPT_DIR/scripts/update_grafana_nifi_alerts.py" "$HOST:/tmp/update_grafana_nifi_alerts.py"
+scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+  "$SCRIPT_DIR/scripts/update_grafana_nifi_alerts.py" \
+  "$SCRIPT_DIR/scripts/grafana_alerting.py" \
+  "$HOST:/tmp/"
 $SSH bash -s << REMOTE
 set -e
 ALERT_EMAIL='${ALERT_EMAIL}'
@@ -143,6 +147,7 @@ export NIFI_K8S_NAMESPACE='${NIFI_K8S_NAMESPACE}'
 export NIFI_RULE_UID_BULLETIN='${NIFI_RULE_UID_BULLETIN}'
 export NIFI_RULE_UID_TERMINATED='${NIFI_RULE_UID_TERMINATED}'
 export NIFI_RULE_UID_COUNTER='${NIFI_RULE_UID_COUNTER}'
+export NIFI_RULE_UID_QUEUE_STALLED='${NIFI_RULE_UID_QUEUE_STALLED}'
 python3 /tmp/update_grafana_nifi_alerts.py
 REMOTE
 

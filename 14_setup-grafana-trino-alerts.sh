@@ -31,6 +31,7 @@ echo "========================================"
 echo ">>> Upload scripts and dashboard JSON..."
 $SCP \
   "${REPO_DIR}/scripts/update_grafana_trino_alerts.py" \
+  "${REPO_DIR}/scripts/grafana_alerting.py" \
   "${REPO_DIR}/scripts/import_grafana_trino_dashboard.py" \
   "${REPO_DIR}/scripts/patch_grafana_elasticsearch_datasource.py" \
   "${REPO_DIR}/backups/grafana-trino-dashboard.json" \
@@ -47,7 +48,7 @@ $SSH bash -s << REMOTE
 set -euo pipefail
 sudo mkdir -p /opt/uob-grafana-trino /opt/uob-trino-hub-agent
 sudo chown ec2-user:ec2-user /opt/uob-grafana-trino /opt/uob-trino-hub-agent
-mv /tmp/update_grafana_trino_alerts.py /tmp/import_grafana_trino_dashboard.py /tmp/patch_grafana_elasticsearch_datasource.py /opt/uob-grafana-trino/
+mv /tmp/update_grafana_trino_alerts.py /tmp/grafana_alerting.py /tmp/import_grafana_trino_dashboard.py /tmp/patch_grafana_elasticsearch_datasource.py /opt/uob-grafana-trino/
 mv /tmp/grafana-trino-dashboard.json /opt/uob-grafana-trino/
 python3 /opt/uob-grafana-trino/patch_grafana_elasticsearch_datasource.py
 chmod +x /opt/uob-grafana-trino/*.py

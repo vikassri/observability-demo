@@ -14,6 +14,7 @@ AIRFLOW_UI_URL="${AIRFLOW_UI_URL:-https://cwo01-cwo-airflow-api-server.cwo01.spo
 
 $SCP \
   "${REPO_DIR}/scripts/update_grafana_airflow_alerts.py" \
+  "${REPO_DIR}/scripts/grafana_alerting.py" \
   "${REPO_DIR}/scripts/import_grafana_airflow_dashboard.py" \
   "${REPO_DIR}/scripts/patch_grafana_elasticsearch_datasource.py" \
   "${REPO_DIR}/backups/grafana-airflow-dashboard.json" \
@@ -22,7 +23,7 @@ $SCP \
 $SSH bash -s << REMOTE
 set -euo pipefail
 sudo mkdir -p /opt/uob-grafana-airflow && sudo chown ec2-user:ec2-user /opt/uob-grafana-airflow
-mv /tmp/update_grafana_airflow_alerts.py /tmp/import_grafana_airflow_dashboard.py /tmp/patch_grafana_elasticsearch_datasource.py /opt/uob-grafana-airflow/
+mv /tmp/update_grafana_airflow_alerts.py /tmp/grafana_alerting.py /tmp/import_grafana_airflow_dashboard.py /tmp/patch_grafana_elasticsearch_datasource.py /opt/uob-grafana-airflow/
 mv /tmp/grafana-airflow-dashboard.json /opt/uob-grafana-airflow/
 python3 /opt/uob-grafana-airflow/patch_grafana_elasticsearch_datasource.py
 export AIRFLOW_RELEASE='${AIRFLOW_RELEASE}'
