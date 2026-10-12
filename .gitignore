@@ -27,8 +27,6 @@ id_ed25519*
 # (35.168.84.113) and the cluster/namespace topology. Setup scripts are
 # pushed unchanged; these docs are not.
 # ---------------------------------------------------------------------------
-README.md
-PROJECT.md
 docs/
 start_tunnel.sh
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Shared Grafana unified-alerting helpers, and the single source of truth for alert routing.
 
-Why this file exists: each service setup script (12 NiFi, 14 Trino, 16 Airflow) used to PUT
-its *own* complete notification-policy tree with the root receiver hardcoded to the NiFi
-contact point. Whichever script ran last therefore dropped the other services' routes, and
-everything falling through to the root was mailed to NiFi's address with NiFi's template.
+Why this file exists: each service setup script (12 NiFi, 14 Trino, 16 Airflow, 19 Spark,
+21 Flink) used to PUT its *own* complete notification-policy tree with the root receiver
+hardcoded to the NiFi contact point. Whichever script ran last therefore dropped the other
+services' routes, and everything falling through to the root was mailed to NiFi's address
+with NiFi's template.
 
 Now REGISTRY below is the one place that says which alert rules exist, and sync_routing()
 builds the whole tree from it. Every alert rule gets its own contact point and its own
@@ -20,8 +21,9 @@ Environment:
                               contact points and templates (see prune_legacy)
 
 The rule uid overrides each setup script already accepted (NIFI_RULE_UID_*, TRINO_RULE_UID_*,
-AIRFLOW_RULE_UID_*) are read here too, so the registry and the rules stay in step — but an
-override must be exported for *all three* scripts, or the trees they build will disagree.
+AIRFLOW_RULE_UID_*, SPARK_RULE_UID_*, FLINK_RULE_UID_*) are read here too, so the registry and
+the rules stay in step — but an override must be exported for *every* script, or the trees
+they build will disagree.
 """
 from __future__ import annotations
 
@@ -59,6 +61,10 @@ REGISTRY: dict[str, list[tuple[str, str]]] = {
             os.environ.get("NIFI_RULE_UID_QUEUE_STALLED", "nifi-conn-queue-stalled"),
             "queue-stalled",
         ),
+        (
+            os.environ.get("NIFI_RULE_UID_STOPPED", "nifi-proc-stopped"),
+            "processor-stopped",
+        ),
     ],
     "trino": [
         (
@@ -83,6 +89,28 @@ REGISTRY: dict[str, list[tuple[str, str]]] = {
             "task-failed",
         ),
     ],
+    "spark": [
+        (
+            os.environ.get(
+                "SPARK_RULE_UID_APPLICATION_FAILED", "spark-application-failed"
+            ),
+            "application-failed",
+        ),
+    ],
+    "flink": [
+        (
+            os.environ.get(
+                "FLINK_RULE_UID_DEPLOYMENT_FAILED", "flink-deployment-failed"
+            ),
+            "deployment-failed",
+        ),
+        (
+            os.environ.get(
+                "FLINK_RULE_UID_SESSIONJOB_FAILED", "flink-sessionjob-failed"
+            ),
+            "sessionjob-failed",
+        ),
+    ],
 }
 
 def _validate_registry() -> None:
@@ -105,7 +133,8 @@ def _validate_registry() -> None:
 _validate_registry()
 
 
-# One generic template for every service — no per-service prose and no runtime env, so any# script can provision it and no service depends on another having run first. Per-service
+# One generic template for every service — no per-service prose and no runtime env, so any
+# script can provision it and no service depends on another having run first. Per-service
 # values come from the labels with an `or` chain.
 EMAIL_TEMPLATE_TEXT = (
     '{{ define "uob_alert_subject" -}}'
@@ -122,9 +151,11 @@ EMAIL_TEMPLATE_TEXT = (
     "Service: {{ .Labels.service }}\n"
     "Kind: {{ .Labels.alert_kind }}\n"
     'Entity: {{ or .Labels.entity .Labels.nifi_flow .Labels.trino_instance'
-    ' .Labels.airflow_release "—" }}\n'
+    ' .Labels.airflow_release .Labels.spark_application .Labels.flink_deployment'
+    ' .Labels.flink_sessionjob "—" }}\n'
     'Namespace: {{ or .Labels.nifi_namespace .Labels.trino_namespace'
-    ' .Labels.airflow_namespace "—" }}\n'
+    ' .Labels.airflow_namespace .Labels.exported_flink_namespace'
+    ' .Labels.spark_namespace .Labels.flink_namespace "—" }}\n'
     "Folder: {{ .Labels.grafana_folder }}\n"
     "Problem: {{ .Annotations.summary }}\n"
     '{{ if eq .Status "firing" }}Action: {{ .Annotations.description }}'

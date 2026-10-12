@@ -19,7 +19,6 @@ from grafana_alerting import (
 )
 
 # Which NiFi flow (process group) to monitor — see README "NiFi metrics and alerts"
-BULLETIN_WINDOW = os.environ.get("NIFI_BULLETIN_WINDOW", "5m")
 NIFI_JOB = os.environ.get("NIFI_PROM_JOB", "dfx-nifi-web")
 NIFI_PARENT_ID = os.environ.get(
     "NIFI_PARENT_ID", "f5876d95-01a0-1000-0000-00005a7a3b62"
@@ -35,11 +34,21 @@ QUEUE_STALL_WINDOW = os.environ.get("NIFI_QUEUE_STALL_WINDOW", "15m")
 # hold a backlog. Set to 0 to alert on any stalled queue regardless of depth.
 QUEUE_STALL_THRESHOLD = os.environ.get("NIFI_QUEUE_STALL_THRESHOLD", "100")
 
+# Run-state is in no federated series — NiFi's Prometheus reporter publishes none —
+# so the processor-stopped rule reads the status exporter instead
+# (scripts/nifi_status_exporter.py, installed by 22_setup-nifi-status-exporter.sh).
+NIFI_STATUS_JOB = os.environ.get("NIFI_PROM_STATUS_JOB", "nifi_status")
+# States to leave out of the rule. Disabled is a deliberate out-of-service mark, not
+# a stop, and alerting on it pages whoever disabled the processor for maintenance.
+# Empty alerts on every non-RUNNING state; a regex works too, e.g. "Disabled|Invalid".
+NIFI_STOPPED_EXCLUDE_STATES = os.environ.get("NIFI_STOPPED_EXCLUDE_STATES", "Disabled")
+
 # Uids come from the shared registry so the rules and the notification routes cannot drift.
 RULE_UID_BULLETIN = rule_uid("nifi", "bulletin")
 RULE_UID_TERMINATED = rule_uid("nifi", "thread-terminated")
 RULE_UID_COUNTER = rule_uid("nifi", "failure-counter")
 RULE_UID_QUEUE_STALLED = rule_uid("nifi", "queue-stalled")
+RULE_UID_STOPPED = rule_uid("nifi", "processor-stopped")
 
 NIFI_LABELS = {
     "nifi_flow": NIFI_FLOW_SLUG,
@@ -89,9 +98,13 @@ def main() -> None:
     bulletin_scope = (
         f'job="{NIFI_JOB}", parent_id="{NIFI_PARENT_ID}", level=~"WARNING|ERROR"'
     )
+    # nifi_bulletin is a gauge, not a counter: NiFi exposes one series per *retained* bulletin
+    # (unique component_id, value 1), and the series disappears when the bulletin ages out.
+    # increase() over a gauge is always 0, which is why this rule never fired. The raw gauge is
+    # the signal: above the "> 0" threshold it fires while any warning/error bulletin is kept.
     bulletin = (
         "sum by (source_name, source_id, level, instance) "
-        f"(increase(nifi_bulletin{{{bulletin_scope}}}[{BULLETIN_WINDOW}]))"
+        f"(nifi_bulletin{{{bulletin_scope}}})"
     )
     terminated = (
         "sum by (component_name, component_id, instance) "
@@ -101,9 +114,10 @@ def main() -> None:
         "sum by (processor_name, processor_id, counter_name, instance) "
         f'(increase(nifi_processor_counters{{job="{NIFI_JOB}", counter_name=~"(?i).*(fail|error).*"}}[5m]))'
     )
-    # Queue that holds files and does not drain — catches a stopped/crashed processor
-    # as well as backpressure. Independent of processor run-state, which NiFi does not
-    # expose as a Prometheus metric.
+    # Queue that holds files and does not drain — catches a backed-up or slow processor
+    # as well as backpressure. This is a proxy for a stopped processor, not the state
+    # itself: run-state is in no federated metric, so a processor stopped on a shallow
+    # queue is invisible here — the processor-stopped rule below reads it directly.
     #
     # Group by source as well as destination: one producer fanning out to N consumers
     # (RouteOnAttribute, distribute) has N connections that share destination_name and
@@ -117,6 +131,21 @@ def main() -> None:
         "and on (source_name, source_id, destination_name, destination_id, instance) "
         f"(delta(nifi_amount_items_queued{{{connection_scope}}}[{QUEUE_STALL_WINDOW}]) == 0)"
         f") > {QUEUE_STALL_THRESHOLD}"
+    )
+
+    # 1 when RUNNING, 0 otherwise, from the status exporter — so "== 0" is the condition.
+    # run_status is a label, not a value: a state change retires one series and creates
+    # another, so stopping a processor makes the run_status=Stopped series appear (firing)
+    # and starting it removes that series again (no data -> the alert resolves).
+    #
+    # Not scoped by parent_id, unlike the rules above: the federated series cover every
+    # process group in the cluster and so must be scoped, whereas the status exporter
+    # exports only the groups it was started with (NIFI_PARENT_ID on its unit).
+    stopped_exclude = (
+        f', run_status!~"{NIFI_STOPPED_EXCLUDE_STATES}"' if NIFI_STOPPED_EXCLUDE_STATES else ""
+    )
+    processor_stopped = (
+        f'nifi_processor_run_status{{job="{NIFI_STATUS_JOB}"{stopped_exclude}}} == 0'
     )
 
     rules = [
@@ -170,20 +199,34 @@ def main() -> None:
             folder=folder,
             prom=prom,
         ),
+    payload(
+        RULE_UID_STOPPED,
+        f"NiFi processor not running ({NIFI_FLOW_TITLE})",
+        processor_stopped,
+        "A processor is not in the RUNNING state.",
+        "Open the flow in NiFi to see which processor stopped and whether the stop "
+        "was intended, then start it again — or leave it stopped and fix the flow.",
+        "2m",
+        severity="critical",
+        alert_kind="processor-stopped",
+        folder=folder,
+        prom=prom,
+    ),
     ]
 
     upsert_rules(rules)
     # Superseded by the queue-stalled rule: a stopped processor no longer passes flow files,
     # so the idle test it used was removed.
+    # The legacy uid is nifi-proc-stalled — one word away from the processor-stopped rule's
+    # nifi-proc-stopped. Deleting the wrong one takes that rule's route with it.
     delete_rules([RULE_UID_STALLED])
     sync_routing()
+    print("flow", NIFI_FLOW_TITLE, "parent_id", NIFI_PARENT_ID)
     print(
-        "flow",
-        NIFI_FLOW_TITLE,
-        "parent_id",
-        NIFI_PARENT_ID,
-        "bulletin_window",
-        BULLETIN_WINDOW,
+        "stopped rule reads Prometheus job",
+        NIFI_STATUS_JOB,
+        "excluding run_status",
+        NIFI_STOPPED_EXCLUDE_STATES or "(nothing)",
     )
 
 

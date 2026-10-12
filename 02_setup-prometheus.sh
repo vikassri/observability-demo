@@ -86,7 +86,8 @@ Group=ec2-user
 ExecStart=/usr/local/bin/prometheus \
   --config.file=/etc/prometheus/prometheus.yml \
   --storage.tsdb.path=/var/lib/prometheus \
-  --web.listen-address=:9090
+  --web.listen-address=:9090 \
+  --web.enable-admin-api
 
 [Install]
 WantedBy=multi-user.target

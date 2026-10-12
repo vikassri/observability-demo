@@ -10,7 +10,6 @@ SSH_KEY="/Users/vikassri/Desktop/uob_poc/mail-server.pem"
 HOST="ec2-user@observability.spoc.cloudera-labs.com"
 SSH="ssh -i $SSH_KEY -o StrictHostKeyChecking=no $HOST"
 ALERT_EMAIL="${NIFI_ALERT_EMAIL:-nifi-alerts@local.test}"
-NIFI_BULLETIN_WINDOW="${NIFI_BULLETIN_WINDOW:-5m}"
 NIFI_PROM_JOB="${NIFI_PROM_JOB:-dfx-nifi-web}"
 NIFI_PARENT_ID="${NIFI_PARENT_ID:-f5876d95-01a0-1000-0000-00005a7a3b62}"
 NIFI_FLOW_TITLE="${NIFI_FLOW_TITLE:-Hello World}"
@@ -43,7 +42,6 @@ REMOTE
 
 echo ">>> Folder, Mailpit contact point, and alert rules..."
 echo "    Flow: ${NIFI_FLOW_TITLE} (parent_id=${NIFI_PARENT_ID})"
-echo "    Bulletin window=${NIFI_BULLETIN_WINDOW}"
 scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
   "$SCRIPT_DIR/scripts/update_grafana_nifi_alerts.py" \
   "$SCRIPT_DIR/scripts/grafana_alerting.py" \
@@ -138,7 +136,6 @@ request(
 print("contact_point_ready", cp_name)
 PY
 
-export NIFI_BULLETIN_WINDOW='${NIFI_BULLETIN_WINDOW}'
 export NIFI_PROM_JOB='${NIFI_PROM_JOB}'
 export NIFI_PARENT_ID='${NIFI_PARENT_ID}'
 export NIFI_FLOW_TITLE='${NIFI_FLOW_TITLE}'
